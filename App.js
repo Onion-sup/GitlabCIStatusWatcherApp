@@ -25,6 +25,17 @@ import {
   LearnMoreLinks,
   ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
+import { GITLAB_API_TOKEN, GITLAB_HOST } from './secrets'
+
+function getProjectArray(){
+  const url = "https://" + GITLAB_HOST + "/api/v4/projects?simple=true&private_token=" + GITLAB_API_TOKEN
+  return (
+    fetch(url)
+    .then((response) => response.json())
+    .catch((error) => console.error(error))
+    )
+}
+console.log(getProjectArray().then((json) => json))
 
 const Section = ({children, title}): Node => {
   const isDarkMode = useColorScheme() === 'dark';
