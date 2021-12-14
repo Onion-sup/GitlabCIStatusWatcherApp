@@ -1,6 +1,6 @@
 import React from "react"
 import { AutocompleteInput } from "react-native-autocomplete-input"
-import { Text, TouchableOpacity, FlatList, View } from 'react-native'
+import { Text, TouchableOpacity, View, FlatList, StyleSheet } from 'react-native'
 import { getGitlabProjects, getProjectBranches, getPipelineFromCommit } from '../gitlabApiFunctions'
 
 export class MainPannel extends React.Component {
@@ -20,23 +20,25 @@ export class MainPannel extends React.Component {
 
     renderProjectSearchBar(){
         return (
-            <AutocompleteInput
-                placeholder="Gitlab Project"
-                data={this.state.projectsFound}
-                value={ (this.state.projectSelected) ? this.state.projectSelected.name : null}
-                onChangeText={(text) => {
-                    this.setState({ projectSelected: undefined});
-                    this.updateProjectFound(text)
+            <View style={styles.autocompleteContainer}>
+                <AutocompleteInput
+                    placeholder="Gitlab Project"
+                    data={this.state.projectsFound}
+                    value={ (this.state.projectSelected) ? this.state.projectSelected.name : null}
+                    onChangeText={(text) => {
+                        this.setState({ projectSelected: undefined});
+                        this.updateProjectFound(text)
+                        }
                     }
-                }
-                flatListProps={{
-                    keyExtractor: (_, idx) => idx,
-                    renderItem: ({ item }) => 
-                        <TouchableOpacity onPress={() => this.setState( { projectSelected: item, projectsFound: [] })}>
-                            <Text>{item.name}</Text>
-                        </TouchableOpacity>
-                }}
-            />
+                    flatListProps={{
+                        keyExtractor: (_, idx) => idx,
+                        renderItem: ({ item }) =>
+                            <TouchableOpacity onPress={() => this.setState( { projectSelected: item, projectsFound: [] }, () => this.updateProjectBranches())}>
+                                <Text>{item.name}</Text>
+                            </TouchableOpacity>
+                    }}
+                />
+            </View>
         )
     }
 
@@ -61,6 +63,7 @@ export class MainPannel extends React.Component {
 
     render() {
         return (
+            
             <View>
                 { this.renderProjectSearchBar() }
                 { this.renderBranchList() }
@@ -68,3 +71,14 @@ export class MainPannel extends React.Component {
             )
         }
 }
+
+const styles = StyleSheet.create({
+    autocompleteContainer: {
+      flex: 1,
+      left: 0,
+      position: 'absolute',
+      right: 0,
+      top: 0,
+      zIndex: 1
+    }
+  });
