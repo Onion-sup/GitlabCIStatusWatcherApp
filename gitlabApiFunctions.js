@@ -8,7 +8,7 @@ export function getGitlabProjects(searchString){
     .catch((error) => console.error(error))
     )
 }
-function getProjectBranches(idProject){
+export function getProjectBranches(idProject){
   const url = "https://" + GITLAB_HOST + "/api/v4/projects/" + idProject + "/repository/branches?private_token=" + GITLAB_API_TOKEN
   return (
     fetch(url)
@@ -17,7 +17,7 @@ function getProjectBranches(idProject){
     )
 }
 
-function getPipelineFromCommit(idProject, commitSha){
+export function getPipelineFromCommit(idProject, commitSha){
   const url = "https://" + GITLAB_HOST + "/api/v4/projects/" + idProject + "/pipelines?sha="+ commitSha + "&private_token=" + GITLAB_API_TOKEN
   return (
     fetch(url)
