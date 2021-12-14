@@ -1,6 +1,6 @@
 import React from "react"
 import { AutocompleteInput } from "react-native-autocomplete-input"
-import { Button, Text } from 'react-native'
+import { Text, TouchableOpacity } from 'react-native'
 import { getGitlabProjects } from '../gitlabApiFunctions'
 
 export class MainPannel extends React.Component {
@@ -23,13 +23,17 @@ export class MainPannel extends React.Component {
                 placeholder="Gitlab Project"
                 data={this.state.projectsFound}
                 value={ (this.state.projectSelected) ? this.state.projectSelected.name : null}
-                onChangeText={(text) => this.updateProjectFound(text)}
+                onChangeText={(text) => {
+                    this.setState({ projectSelected: undefined});
+                    this.updateProjectFound(text)
+                    }
+                }
                 flatListProps={{
                   keyExtractor: (_, idx) => idx,
-                  renderItem: ({ item }) => <Button
-                    onPress={() => this.setState( { projectSelected: item, projectsFound: [] })}
-                    title={item.name}
-                  />
+                  renderItem: ({ item }) => 
+                    <TouchableOpacity onPress={() => this.setState( { projectSelected: item, projectsFound: [] })}>
+                        <Text>{item.name}</Text>
+                    </TouchableOpacity>
                 }}
             />
             )
