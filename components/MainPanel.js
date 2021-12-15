@@ -10,7 +10,8 @@ export class MainPannel extends React.Component {
             projectSelected: undefined,
             branchSelected: undefined,
             projectsFound: [],
-            branches: []
+            branches: [],
+            pipelineStatus: 'unknown'
         }
     }
     updateProjectFound(searchString){
@@ -26,7 +27,11 @@ export class MainPannel extends React.Component {
                     data={this.state.projectsFound}
                     value={ (this.state.projectSelected) ? this.state.projectSelected.name : null}
                     onChangeText={(text) => {
-                        this.setState({ projectSelected: undefined});
+                        this.setState({ 
+                            projectSelected: undefined,
+                            branchSelected: undefined,
+                            branches: []
+                        });
                         this.updateProjectFound(text)
                         }
                     }
@@ -46,13 +51,17 @@ export class MainPannel extends React.Component {
         getProjectBranches(this.state.projectSelected.id)
         .then((branches) => this.setState({ branches: branches}))
     }
-    
+    updatePipelineStatus(){
+        getPipelineFromCommit(this.state.projectSelected.id, this.state.branchSelected.commit.id)
+        .then((pipelines) => this.setState({ pipelineStatus: pipelines[0].status}))
+    }
     renderBranchList(){
         return (
             <FlatList
+            style={styles.branchListContainer}
             data={this.state.branches}
             renderItem= {({ item }) => 
-                <TouchableOpacity onPress={() => this.setState( { projectSelected: item, projectsFound: [] })}>
+                <TouchableOpacity onPress={() => this.setState( { branchSelected: item }, () => this.updatePipelineStatus())}>
                     <Text>{item.name}</Text>
                 </TouchableOpacity>
             }
@@ -61,12 +70,21 @@ export class MainPannel extends React.Component {
         )
     }
 
+    renderPipelineStatus(){
+        return(
+            <View style={styles.pipelineStatusContainer}>
+                <Text>PipelineStatus: { this.state.pipelineStatus }</Text>
+
+            </View>
+        )
+    }
     render() {
         return (
             
             <View>
                 { this.renderProjectSearchBar() }
                 { this.renderBranchList() }
+                { this.renderPipelineStatus() }
             </View>
             )
         }
@@ -80,5 +98,12 @@ const styles = StyleSheet.create({
       right: 0,
       top: 0,
       zIndex: 1
+    },
+    branchListContainer: {
+        top: 100
+    },
+    pipelineStatusContainer: {
+        top: 100
+
     }
   });
