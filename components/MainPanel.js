@@ -1,7 +1,7 @@
 import React from "react"
 import { AutocompleteInput } from "react-native-autocomplete-input"
 import { Text, TouchableOpacity, View, FlatList, StyleSheet } from 'react-native'
-import { getGitlabProjects, getProjectBranches, getPipelineFromCommit } from '../gitlabApiFunctions'
+import { getGitlabProjects, getProjectBranches, getPipelineFromCommit, getPipelineJobs } from '../gitlabApiFunctions'
 
 export class MainPannel extends React.Component {
     constructor(props) {
@@ -11,19 +11,33 @@ export class MainPannel extends React.Component {
             branchSelected: undefined,
             projectsFound: [],
             branches: [],
-            pipelineStatus: 'unknown'
+            pipeline: undefined,
+            pipelineJobs: []
         }
     }
     updateProjectFound(searchString){
         getGitlabProjects(searchString)
         .then((projects) => this.setState({ projectsFound: projects }))
     }
-
+    updateProjectBranches(){
+        getProjectBranches(this.state.projectSelected.id)
+        .then((branches) => this.setState({ branches: branches}))
+    }
+    updatePipeline(){
+        getPipelineFromCommit(this.state.projectSelected.id, this.state.branchSelected.commit.id)
+        .then((pipelines) => this.setState({ pipeline: pipelines[0]}, () => this.updatePipelineJobs()))
+    }
+    updatePipelineJobs(){
+        getPipelineJobs(this.state.projectSelected.id, this.state.pipeline.id)
+        .then((jobs) => this.setState( {pipelineJobs: jobs} ))
+    }
+    
     renderProjectSearchBar(){
         return (
             <View style={styles.autocompleteContainer}>
                 <AutocompleteInput
-                    placeholder="Gitlab Project"
+                    style={styles.searchBar}
+                    placeholder="Search Gitlab Project..."
                     data={this.state.projectsFound}
                     value={ (this.state.projectSelected) ? this.state.projectSelected.name : null}
                     onChangeText={(text) => {
@@ -47,44 +61,46 @@ export class MainPannel extends React.Component {
         )
     }
 
-    updateProjectBranches(){
-        getProjectBranches(this.state.projectSelected.id)
-        .then((branches) => this.setState({ branches: branches}))
-    }
-    updatePipelineStatus(){
-        getPipelineFromCommit(this.state.projectSelected.id, this.state.branchSelected.commit.id)
-        .then((pipelines) => this.setState({ pipelineStatus: pipelines[0].status}))
-    }
     renderBranchList(){
         return (
-            <FlatList
-            style={styles.branchListContainer}
-            data={this.state.branches}
-            renderItem= {({ item }) => 
-                <TouchableOpacity onPress={() => this.setState( { branchSelected: item }, () => this.updatePipelineStatus())}>
-                    <Text>{item.name}</Text>
-                </TouchableOpacity>
-            }
-            keyExtractor={item => item.id}
-          /> 
+            <View style={styles.branchListContainer}>
+                <FlatList
+                data={this.state.branches}
+                renderItem= {({ item }) => 
+                    <TouchableOpacity onPress={() => this.setState( { branchSelected: item }, () => this.updatePipeline())}>
+                        <Text>{item.name}</Text>
+                    </TouchableOpacity>
+                }
+                keyExtractor={item => item.name}
+            /> 
+          </View>
         )
     }
-
-    renderPipelineStatus(){
+    renderPipeline(){
         return(
-            <View style={styles.pipelineStatusContainer}>
-                <Text>PipelineStatus: { this.state.pipelineStatus }</Text>
-
+            <View style={styles.pipelineContainer}>
+                <Text>PipelineStatus: { (this.state.pipeline) ? this.state.pipeline.status : "unknown" }</Text>
             </View>
+        )
+    }
+    renderJobsStatus(){
+        return(
+            <FlatList
+            data={this.state.branches}
+            renderItem= {({ item }) => 
+                <Text>{item.name}: {item.status}</Text>
+            }
+            keyExtractor={item => item.name}
+          /> 
         )
     }
     render() {
         return (
-            
             <View>
                 { this.renderProjectSearchBar() }
                 { this.renderBranchList() }
-                { this.renderPipelineStatus() }
+                { this.renderPipeline() }
+                {/* { this.renderJobsStatus() } */}
             </View>
             )
         }
@@ -92,18 +108,28 @@ export class MainPannel extends React.Component {
 
 const styles = StyleSheet.create({
     autocompleteContainer: {
-      flex: 1,
       left: 0,
       position: 'absolute',
       right: 0,
       top: 0,
-      zIndex: 1
     },
-    branchListContainer: {
-        top: 100
+    searchBar: {
+        borderWidth: 1,
+        borderRadius: 20
     },
     pipelineStatusContainer: {
         top: 100
-
-    }
+    },
+    pipelineContainer: {
+        borderWidth: 1,
+        borderRadius: 20
+    },
+    branchListContainer: {
+        top: 100,
+        height: 100,
+        paddingLeft: 10,
+        paddingRight: 10,
+        borderWidth: 1,
+        borderRadius: 20
+        }
   });
