@@ -91,6 +91,8 @@ export class MainPannel extends React.Component {
                 return <View style={styles.successPellet}></View>
             case 'failed':
                 return <View style={styles.failedPellet}></View>
+            case 'canceled':
+                return <View style={styles.canceledPellet}></View>
         }
     }
 
@@ -136,10 +138,11 @@ const colors = {
     background: "#554488",
     displayZones: "#D0D3D4",
     listItem: "#ECF0F1",
-    pending: "#F39C12",
+    pending: "#F1C40F",
     running: "#3498DB",
     success: "#42ba96",
-    failed: "#E74C3C"
+    failed: "#E74C3C",
+    canceled: "#F0F3F4"
 }
 const styles = StyleSheet.create({
     mainContainer: {
@@ -220,6 +223,13 @@ const styles = StyleSheet.create({
         height: 25,
         borderRadius: 25/2,
         backgroundColor: colors.failed,
+        borderWidth: 1
+    },
+    canceledPellet: {
+        width: 25,
+        height: 25,
+        borderRadius: 25/2,
+        backgroundColor: colors.canceled,
         borderWidth: 1
     }
   });
