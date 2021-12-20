@@ -77,15 +77,23 @@ export class MainPannel extends React.Component {
         return (
             <TouchableOpacity style={styles.branchListItem} onPress={() => this.setState( { branchSelected: branch }, () => this.updatePipeline())}>
                 <Text style={{fontSize: 20, flex:0.9}} numberOfLines={1}>{branch.name}</Text>
-                { (this.state.pipeline && this.state.branchSelected.name === branch.name) ?  this.renderStatusPellet() : null }
+                { (this.state.pipeline && this.state.branchSelected.name === branch.name) ?  this.renderStatusPellet(this.state.pipeline.status) : null }
             </TouchableOpacity>
         )
     }
-    renderStatusPellet(){
-        return(
-            <View style={styles.circle}></View>
-        )
+    renderStatusPellet(status){
+        switch (status) {
+            case 'pending':
+                return <View style={styles.pendingPellet}></View>
+            case 'running':
+                return <View style={styles.runningPellet}></View>
+            case 'success':
+                return <View style={styles.successPellet}></View>
+            case 'failed':
+                return <View style={styles.failedPellet}></View>
+        }
     }
+
     renderPipeline(){
         return(
             <View style={styles.pipelineContainer}>
@@ -128,7 +136,10 @@ const colors = {
     background: "#554488",
     displayZones: "#D0D3D4",
     listItem: "#ECF0F1",
-    success: "#42ba96"
+    pending: "#F39C12",
+    running: "#3498DB",
+    success: "#42ba96",
+    failed: "#E74C3C"
 }
 const styles = StyleSheet.create({
     mainContainer: {
@@ -183,11 +194,32 @@ const styles = StyleSheet.create({
         flexDirection: 'column',
         borderWidth: 1
     },
-    circle: {
+    pendingPellet: {
+        width: 25,
+        height: 25,
+        borderRadius: 25/2,
+        backgroundColor: colors.pending,
+        borderWidth: 1
+    },
+    runningPellet: {
+        width: 25,
+        height: 25,
+        borderRadius: 25/2,
+        backgroundColor: colors.running,
+        borderWidth: 1
+    },
+    successPellet: {
         width: 25,
         height: 25,
         borderRadius: 25/2,
         backgroundColor: colors.success,
+        borderWidth: 1
+    },
+    failedPellet: {
+        width: 25,
+        height: 25,
+        borderRadius: 25/2,
+        backgroundColor: colors.failed,
         borderWidth: 1
     }
   });
