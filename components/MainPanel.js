@@ -6,7 +6,7 @@ import { getGitlabProjects, getProjectBranches, getPipelineFromCommit, getPipeli
 export class MainPannel extends React.Component {
     constructor(props) {
         super(props);
-        this.state = {
+        this.initState = {
             projectSelected: undefined,
             branchSelected: undefined,
             projectsFound: [],
@@ -14,7 +14,37 @@ export class MainPannel extends React.Component {
             pipeline: undefined,
             pipelineJobs: []
         }
+        this.state = {
+            ...this.initState
+        }
+        this.backgroundLooper = null
     }
+    render() {
+        if (this.backgroundLooper){
+            console.log(this.backgroundLooper)
+        }
+        if (!this.state.pipeline){
+            if (this.backgroundLooper){
+                clearInterval(this.backgroundLooper)
+                this.backgroundLooper = null
+                console.log("clearInterval")
+            }
+        }
+        if (this.state.pipeline && !this.backgroundLooper){
+            this.backgroundLooper = setInterval(() => {
+                console.log('redenr looper', Date())
+            }, 3000);
+        }
+        return (
+            <View style={styles.mainContainer}>
+                { this.renderProjectSearchBar() }
+                <View style={styles.branchListAndPipelineContainer}>
+                    { this.renderBranchList() }
+                    { this.renderPipeline() }
+                </View>
+            </View>
+            )
+        }
     updateProjectFound(searchString){
         getGitlabProjects(searchString)
         .then((projects) => this.setState({ projectsFound: projects }))
@@ -29,7 +59,7 @@ export class MainPannel extends React.Component {
     }
     updatePipelineJobs(){
         getPipelineJobs(this.state.projectSelected.id, this.state.pipeline.id)
-        .then((jobs) => this.setState( {pipelineJobs: jobs} ))
+        .then((jobs) => this.setState( {pipelineJobs: jobs}))
     }
     
     renderProjectSearchBar(){
@@ -42,9 +72,7 @@ export class MainPannel extends React.Component {
                     value={ (this.state.projectSelected) ? this.state.projectSelected.name : null}
                     onChangeText={(text) => {
                         this.setState({ 
-                            projectSelected: undefined,
-                            branchSelected: undefined,
-                            branches: []
+                            ...this.initState
                         });
                         this.updateProjectFound(text)
                         }
@@ -68,16 +96,16 @@ export class MainPannel extends React.Component {
                 data={this.state.branches}
                 renderItem= {({ item }) => this.renderBranchItem(item) }
                 keyExtractor={item => item.name}
-                extraData={this.state.pipeline}
             /> 
           </View>
         )
     }
     renderBranchItem(branch){
+        const renderStatusPellet = this.state.pipeline && this.state.branchSelected
         return (
-            <TouchableOpacity style={styles.branchListItem} onPress={() => this.setState( { branchSelected: branch }, () => this.updatePipeline())}>
+            <TouchableOpacity style={styles.listItemContainer} onPress={() => this.setState( { branchSelected: branch }, () => this.updatePipeline())}>
                 <Text style={{fontSize: 20, flex:0.9}} numberOfLines={1}>{branch.name}</Text>
-                { (this.state.pipeline && this.state.branchSelected.name === branch.name) ?  this.renderStatusPellet(this.state.pipeline.status) : null }
+                { renderStatusPellet && this.state.branchSelected.name === branch.name ?  this.renderStatusPellet(this.state.pipeline.status) : null }
             </TouchableOpacity>
         )
     }
@@ -99,40 +127,23 @@ export class MainPannel extends React.Component {
     renderPipeline(){
         return(
             <View style={styles.pipelineContainer}>
-                <Text>PipelineStatus: { (this.state.pipeline) ? this.state.pipeline.status : "unknown" }</Text>
                 <FlatList
-                    data={this.state.pipelineJobs}
-                    renderItem= {({ item }) => 
-                        {this.renderJobStatus(item)}
-                    }
-                    keyExtractor={item => item.name}
-                />
+                data={this.state.pipelineJobs}
+                renderItem= {({ item }) => this.renderJobItem(item) }
+                keyExtractor={item => item.name}
+                /> 
             </View>
         )
     }
-    renderJobStatus(job){
-        return(
-            <View style={styles.jobContainer}>
-                <Text style={styles.jobName}>
-                    {job.name}
-                </Text>
-                <View style={styles.jobStatus}>
-
-                </View>
-            </View>
-        )
-    }
-    render() {
+    renderJobItem(job){
         return (
-            <View style={styles.mainContainer}>
-                { this.renderProjectSearchBar() }
-                <View style={styles.branchListAndPipelineContainer}>
-                    { this.renderBranchList() }
-                    { this.renderPipeline() }
-                </View>
+            <View style={styles.listItemContainer} >
+                <Text style={{fontSize: 20, flex:0.9}} numberOfLines={1}>{job.name}</Text>
+                { this.renderStatusPellet(job.status) }
             </View>
-            )
-        }
+        )
+    }
+    
 }
 const colors = {
     background: "#554488",
@@ -157,7 +168,7 @@ const styles = StyleSheet.create({
     suggestionListItem: {
         backgroundColor: colors.listItem
     },
-    branchListItem: {
+    listItemContainer: {
         flex: 1,
         flexDirection: 'row',
         justifyContent: "space-between",
@@ -191,6 +202,8 @@ const styles = StyleSheet.create({
         backgroundColor: colors.displayZones,
         flex: 0.68,
         Width: 1,
+        paddingLeft: 10,
+        paddingRight: 10,
     },
     jobContainer: {
         display: 'flex',
