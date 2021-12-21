@@ -27,13 +27,13 @@ export class MainPannel extends React.Component {
             if (this.backgroundLooper){
                 clearInterval(this.backgroundLooper)
                 this.backgroundLooper = null
-                console.log("clearInterval")
+                console.log("[MainPanel] clearInterval")
             }
         }
         if (this.state.pipeline && !this.backgroundLooper){
             this.backgroundLooper = setInterval(() => {
-                console.log('redenr looper', Date())
-            }, 3000);
+                console.log('[MainPanel] looper', Date())
+            }, 2000);
         }
         return (
             <View style={styles.mainContainer}>
@@ -41,6 +41,7 @@ export class MainPannel extends React.Component {
                 <View style={styles.branchListAndPipelineContainer}>
                     { this.renderBranchList() }
                     { this.renderPipeline() }
+                    { this.renderLedStripCnxStatus() }
                 </View>
             </View>
             )
@@ -61,7 +62,14 @@ export class MainPannel extends React.Component {
         getPipelineJobs(this.state.projectSelected.id, this.state.pipeline.id)
         .then((jobs) => this.setState( {pipelineJobs: jobs}))
     }
-    
+    renderLedStripCnxStatus(){
+        return (
+            <View style={styles.ledStripCnxStatusContainer} >
+                <Text style={{fontSize: 15, flex: 0.95 }} numberOfLines={1}>BLE led strip light connection status</Text>
+                { this.renderStatusPellet("success") }
+            </View>
+        )
+    }
     renderProjectSearchBar(){
         return (
             <View style={styles.autocompleteContainer}>
@@ -200,15 +208,15 @@ const styles = StyleSheet.create({
     },
     pipelineContainer: {
         backgroundColor: colors.displayZones,
-        flex: 0.68,
+        flex: 0.66,
         Width: 1,
         paddingLeft: 10,
         paddingRight: 10,
     },
-    jobContainer: {
-        display: 'flex',
-        flexDirection: 'column',
-        borderWidth: 1
+    ledStripCnxStatusContainer: {
+        flexDirection: 'row',
+        justifyContent: "space-between",
+        backgroundColor: colors.displayZones
     },
     pendingPellet: {
         width: 25,
@@ -244,5 +252,5 @@ const styles = StyleSheet.create({
         borderRadius: 25/2,
         backgroundColor: colors.canceled,
         borderWidth: 1
-    }
+    },
   });
