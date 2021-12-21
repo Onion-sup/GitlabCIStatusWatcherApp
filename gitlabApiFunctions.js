@@ -34,6 +34,3 @@ export function getPipelineJobs(idProject, idPipeline){
     .catch((error) => console.error(error))
     )
   }
-// getGitlabProjects().then((projects) => console.log("project", projects[0].id, projects[0].name))
-// getProjectBranches(34).then((branches) => console.log("branch", branches[1].commit.id))
-// getPipelineFromCommit(34, branches[1].commit.id).then((pipeline) => console.log("pipeline", pipeline[0].status))
