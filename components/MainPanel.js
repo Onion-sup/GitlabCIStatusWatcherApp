@@ -1,8 +1,13 @@
 import React from "react"
 import { AutocompleteInput } from "react-native-autocomplete-input"
-import { Text, TouchableOpacity, View, FlatList, StyleSheet } from 'react-native'
+import { Text, TouchableOpacity, View, FlatList, StyleSheet, AppRegistry, NativeModules } from 'react-native'
 import { getGitlabProjects, getProjectBranches, getPipelineFromCommit, getPipelineJobs } from '../gitlabApiFunctions'
-
+import { back } from "react-native/Libraries/Animated/Easing";
+AppRegistry.registerHeadlessTask('setIntervalTask', () =>
+  require('../setIntervalTask')
+);
+const { backgroundLooperModule } = NativeModules;
+backgroundLooperModule.startTask('message')
 export class MainPannel extends React.Component {
     constructor(props) {
         super(props);
