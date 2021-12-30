@@ -4,59 +4,114 @@ import { ActivityIndicator, TouchableOpacity, View, Text, PermissionsAndroid, St
 import { colors } from "../styles"
 
 export class LedDeviceManager extends React.Component {
+  DISCONNECTED = 0
+  CONNECTED = 1
+  CONNECTING = 2
+  DISCONNECTING = 3
   constructor(props) {
       super(props)
       this.bleManager = new BleManager()
       this.requestLocationPermission()
-      this.deviceName = "ELK-BLEDOM"
+      this.deviceId = "BE:59:30:00:2D:B4"
       this.state = {
         isScanning: false,
-        device: undefined
+        device: undefined,
+        connectionStatus: this.DISCONNECTED
       }
   }
   render(){
     return (
-        <TouchableOpacity style={styles.mainContainer} >
+        <TouchableOpacity style={styles.mainContainer} onPress={() => this.switchDeviceConnection()} >
             <Text style={{fontSize: 15, flex: 0.95 }} numberOfLines={1}>BLE led strip light connection</Text>
-            {this.state.isLoading ? (
-            <ActivityIndicator color={'grey'} size={25} />
-            ) : (
-              <View style={styles.successPellet}></View>
+            {this.state.connectionStatus == this.CONNECTING || this.state.connectionStatus == this.DISCONNECTING ? (
+              <ActivityIndicator color={'grey'} size={25} />
+              ) : (
+                this.state.connectionStatus == this.CONNECTED ? (
+                <View style={styles.connectedPellet}></View>
+                )  : ( 
+                  this.state.connectionStatus == this.DISCONNECTED ? (
+                    <View style={styles.disconnectedPellet}></View>
+                  ) 
+                  : (
+                    null
+                  )
+                )
             )}
         </TouchableOpacity>
     )
   }
-  connectDevice = () => {
-      if (this.state.isScanning){
+  
+  switchDeviceConnection = () => {
+    switch (this.state.connectionStatus){
+      case this.CONNECTING:
+          this.bleManager.stopDeviceScan()
+          this.setState({ connectionStatus: this.DISCONNECTED })
+      case this.DISCONNECTED:
+        this.connectDevice()
+        break
+      case this.CONNECTED:
+        this.disconnectDevice()
+        break
+    }
+  }
+
+  connectDevice(){
+      if (this.state.connectionStatus != this.DISCONNECTED){
         return
       }
-      console.log("scanDevices")
-      setIsScanning(true)
+      this.setState({ connectionStatus: this.CONNECTING})
       // scan devices
+      let deviceFound = false
       this.bleManager.startDeviceScan(null, null, (error, scannedDevice) => {
         if (error) {
-          console.warn(error)
+          console.warn("[connectDevice]", error)
+          this.setState({ connectionStatus: this.DISCONNECTED})
+          return
         }
-        console.log("scanDevices", "startDeviceScan")
-        // if a device is detected add the device to the list by dispatching the action into the reducer
+        if (deviceFound == true){
+          console.log("[connectDevice]", "deviceFound == true return")
+          return
+        }
         if (scannedDevice) {
-          console.log(scannedDevice.id)
-          if (scannedDevice.name == this.deviceName){
-            console.log("scanDevices", "connect to device")
-            scannedDevice.connect
+          console.log("[connectDevice]", "scanned device:", scannedDevice.name, scannedDevice.id)
+          if (scannedDevice.id == this.deviceId){
+            deviceFound = true
+            console.log("[connectDevice]", "connecting to", scannedDevice.id)
+            scannedDevice.connect()
             .then((device) => {
+              console.log("[connectDevice]", "device connected")
               this.bleManager.stopDeviceScan()
-              this.setState({ isScanning: false,  device: device})
+              this.setState({ connectionStatus: this.CONNECTED,  device: device})
             })
+            .catch((error) => {
+              console.log("[connectDevice]", error)
+              scannedDevice.isConnected()
+              .then((isConnected) => {
+                isConnected ? console.log("[connectDevice]", "device already connected") : null
+              })
+            })
+              }
           }
-        }
       })
-
-      // stop scanning devices after x seconds
-      setTimeout(() => {
-        this.bleManager.stopDeviceScan()
-        this.setState({ isScanning: false })
-      }, 10000)
+  }
+  
+  disconnectDevice(){
+    if (this.state.connectionStatus != this.CONNECTED){
+      return
+    }
+    this.setState({ connectionStatus: this.DISCONNECTING })
+    this.state.device.cancelConnection()
+    .then((device) => {
+      device.isConnected()
+      .then((isConnected) => {
+        if (!isConnected){
+          this.setState( {device: device, connectionStatus: this.DISCONNECTED} )
+        }
+        else {
+          this.setState( {device: device, connectionStatus: this.CONNECTED} )
+        }
+      }) 
+    })
   }
 
   async requestLocationPermission() {
@@ -90,11 +145,18 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     backgroundColor: colors.displayZones
   },
-  successPellet: {
+  connectedPellet: {
     width: 25,
     height: 25,
     borderRadius: 25/2,
     backgroundColor: colors.success,
+    borderWidth: 1
+  },
+  disconnectedPellet: {
+    width: 25,
+    height: 25,
+    borderRadius: 25/2,
+    backgroundColor: colors.canceled,
     borderWidth: 1
   }
 })
