@@ -12,10 +12,13 @@ export class LedDeviceManager extends React.Component {
       super(props)
       this.bleManager = new BleManager()
       this.requestLocationPermission()
-      this.deviceId = "BE:59:30:00:2D:B4"
+      this.DEVICE_ID = "BE:59:30:00:2D:B4"
+      this.SERVICE_ID = "0000fff0-0000-1000-8000-00805f9b34fb"
+      this.CHARACTERISTIC_ID = 6
       this.state = {
         isScanning: false,
         device: undefined,
+        deviceCharacteristic: undefined,
         connectionStatus: this.DISCONNECTED
       }
   }
@@ -74,14 +77,18 @@ export class LedDeviceManager extends React.Component {
         }
         if (scannedDevice) {
           console.log("[connectDevice]", "scanned device:", scannedDevice.name, scannedDevice.id)
-          if (scannedDevice.id == this.deviceId){
+          if (scannedDevice.id == this.DEVICE_ID){
             deviceFound = true
             console.log("[connectDevice]", "connecting to", scannedDevice.id)
             scannedDevice.connect()
             .then((device) => {
               console.log("[connectDevice]", "device connected")
               this.bleManager.stopDeviceScan()
-              this.setState({ connectionStatus: this.CONNECTED,  device: device})
+              this.getDeviceCharacteristic(device)
+              .then(deviceCharacteristic => {
+                console.log("char", deviceCharacteristic.id)
+                this.setState({ connectionStatus: this.CONNECTED, device: device, deviceCharacteristic: deviceCharacteristic})  
+              })
             })
             .catch((error) => {
               console.log("[connectDevice]", error)
@@ -113,7 +120,25 @@ export class LedDeviceManager extends React.Component {
       }) 
     })
   }
-
+  
+  getDeviceCharacteristic(device){
+    device.discoverAllServicesAndCharacteristics()
+    .then((allServicesAndCharacteristics) =>{
+      allServicesAndCharacteristics.services()
+      .then((services) => {
+        const service = services.find(service => service.uuid == this.SERVICE_ID)
+        service.characteristics()
+        .then((charArray) => {
+          const char = charArray.find(char => char.id == this.CHARACTERISTIC_ID)
+          console.log(char.id)
+          return char
+        })
+        .catch((error) => console.warn("[getDeviceCharacteristic]", error))
+      })
+      .catch((error) => console.warn("[getDeviceCharacteristic]", error))
+    })
+    .catch((error) => console.warn("[getDeviceCharacteristic]", error))
+  }
   async requestLocationPermission() {
     try {
       const granted = await PermissionsAndroid.request(
