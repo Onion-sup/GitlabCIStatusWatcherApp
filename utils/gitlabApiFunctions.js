@@ -1,4 +1,4 @@
-import { GITLAB_API_TOKEN, GITLAB_HOST } from './secrets'
+import { GITLAB_API_TOKEN, GITLAB_HOST } from '../secrets'
 
 export function getGitlabProjects(searchString){
   const url = "https://" + GITLAB_HOST + "/api/v4/projects?simple=true&search=" + searchString + "&private_token=" + GITLAB_API_TOKEN

@@ -1,7 +1,9 @@
-import React from "react"
+import React from "react";
+import { colors } from "../styles"
 import { AutocompleteInput } from "react-native-autocomplete-input"
 import { Text, TouchableOpacity, View, FlatList, StyleSheet } from 'react-native'
-import { getGitlabProjects, getProjectBranches, getPipelineFromCommit, getPipelineJobs } from '../gitlabApiFunctions'
+import { getGitlabProjects, getProjectBranches, getPipelineFromCommit, getPipelineJobs } from '../utils/gitlabApiFunctions'
+import { LedDeviceManager } from "./LedDeviceManager";
 
 export class MainPannel extends React.Component {
     constructor(props) {
@@ -17,31 +19,16 @@ export class MainPannel extends React.Component {
         this.state = {
             ...this.initState
         }
-        this.backgroundLooper = null
     }
+
     render() {
-        if (this.backgroundLooper){
-            console.log(this.backgroundLooper)
-        }
-        if (!this.state.pipeline){
-            if (this.backgroundLooper){
-                clearInterval(this.backgroundLooper)
-                this.backgroundLooper = null
-                console.log("[MainPanel] clearInterval")
-            }
-        }
-        if (this.state.pipeline && !this.backgroundLooper){
-            this.backgroundLooper = setInterval(() => {
-                console.log('[MainPanel] looper', Date())
-            }, 2000);
-        }
         return (
             <View style={styles.mainContainer}>
                 { this.renderProjectSearchBar() }
                 <View style={styles.branchListAndPipelineContainer}>
                     { this.renderBranchList() }
                     { this.renderPipeline() }
-                    { this.renderLedStripCnxStatus() }
+                    <LedDeviceManager/>
                 </View>
             </View>
             )
@@ -61,14 +48,6 @@ export class MainPannel extends React.Component {
     updatePipelineJobs(){
         getPipelineJobs(this.state.projectSelected.id, this.state.pipeline.id)
         .then((jobs) => this.setState( {pipelineJobs: jobs}))
-    }
-    renderLedStripCnxStatus(){
-        return (
-            <View style={styles.ledStripCnxStatusContainer} >
-                <Text style={{fontSize: 15, flex: 0.95 }} numberOfLines={1}>BLE led strip light connection status</Text>
-                { this.renderStatusPellet("success") }
-            </View>
-        )
     }
     renderProjectSearchBar(){
         return (
@@ -153,16 +132,7 @@ export class MainPannel extends React.Component {
     }
     
 }
-const colors = {
-    background: "#554488",
-    displayZones: "#D0D3D4",
-    listItem: "#ECF0F1",
-    pending: "#F1C40F",
-    running: "#3498DB",
-    success: "#42ba96",
-    failed: "#E74C3C",
-    canceled: "#F0F3F4"
-}
+
 const styles = StyleSheet.create({
     mainContainer: {
         flex: 1,
@@ -212,11 +182,6 @@ const styles = StyleSheet.create({
         Width: 1,
         paddingLeft: 10,
         paddingRight: 10,
-    },
-    ledStripCnxStatusContainer: {
-        flexDirection: 'row',
-        justifyContent: "space-between",
-        backgroundColor: colors.displayZones
     },
     pendingPellet: {
         width: 25,
