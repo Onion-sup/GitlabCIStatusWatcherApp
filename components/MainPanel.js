@@ -2,7 +2,7 @@ import React from "react";
 import { colors } from "../styles"
 import { AutocompleteInput } from "react-native-autocomplete-input"
 import { Text, TouchableOpacity, View, FlatList, StyleSheet } from 'react-native'
-import { getGitlabProjects, getProjectBranches, getPipelineFromCommit, getPipelineJobs } from '../gitlabApiFunctions'
+import { getGitlabProjects, getProjectBranches, getPipelineFromCommit, getPipelineJobs } from '../utils/gitlabApiFunctions'
 import { LedDeviceManager } from "./LedDeviceManager";
 
 export class MainPannel extends React.Component {
