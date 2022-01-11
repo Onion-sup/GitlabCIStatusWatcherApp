@@ -4,6 +4,7 @@ import { AutocompleteInput } from "react-native-autocomplete-input"
 import { Text, TouchableOpacity, View, FlatList, StyleSheet } from 'react-native'
 import { getGitlabProjects, getProjectBranches, getPipelineFromCommit, getPipelineJobs } from '../utils/gitlabApiFunctions'
 import { LedDeviceManager } from "./LedDeviceManager";
+import { hexToRgb } from '../utils/converters'
 
 export class StatusWatcher extends React.Component {
     constructor(props) {
@@ -23,7 +24,7 @@ export class StatusWatcher extends React.Component {
             this.updateProjectBranches()
             this.updatePipeline()
             this.updatePipelineJobs()
-        }, 2000)
+        }, 5000)
     }
     
     render() {
@@ -33,11 +34,18 @@ export class StatusWatcher extends React.Component {
                 <View style={styles.branchListAndPipelineContainer}>
                     { this.renderBranchList() }
                     { this.renderPipeline() }
-                    <LedDeviceManager/>
+                    <LedDeviceManager command={this.getLedDeviceCommand()}/>
                 </View>
             </View>
             )
         }
+    getLedDeviceCommand(){
+        if (this.state.pipeline){
+            rgbColor = hexToRgb(colors[this.state.pipeline.status])
+            const command = {color: rgbColor}
+            return command
+        }
+    }
     updateProjectFound(searchString){
         getGitlabProjects(searchString)
         .then((projects) => this.setState({ projectsFound: projects }))
@@ -130,18 +138,7 @@ export class StatusWatcher extends React.Component {
         )
     }
     renderStatusPellet(status){
-        switch (status) {
-            case 'pending':
-                return <View style={styles.pendingPellet}></View>
-            case 'running':
-                return <View style={styles.runningPellet}></View>
-            case 'success':
-                return <View style={styles.successPellet}></View>
-            case 'failed':
-                return <View style={styles.failedPellet}></View>
-            case 'canceled':
-                return <View style={styles.canceledPellet}></View>
-        }
+        return <View style={[styles.pellet, {backgroundColor: colors[status]}]}></View>
     }
 
     renderPipeline(){
@@ -216,39 +213,10 @@ const styles = StyleSheet.create({
         paddingLeft: 10,
         paddingRight: 10,
     },
-    pendingPellet: {
+    pellet: {
         width: 25,
         height: 25,
         borderRadius: 25/2,
-        backgroundColor: colors.pending,
         borderWidth: 1
-    },
-    runningPellet: {
-        width: 25,
-        height: 25,
-        borderRadius: 25/2,
-        backgroundColor: colors.running,
-        borderWidth: 1
-    },
-    successPellet: {
-        width: 25,
-        height: 25,
-        borderRadius: 25/2,
-        backgroundColor: colors.success,
-        borderWidth: 1
-    },
-    failedPellet: {
-        width: 25,
-        height: 25,
-        borderRadius: 25/2,
-        backgroundColor: colors.failed,
-        borderWidth: 1
-    },
-    canceledPellet: {
-        width: 25,
-        height: 25,
-        borderRadius: 25/2,
-        backgroundColor: colors.canceled,
-        borderWidth: 1
-    },
+    }
   });

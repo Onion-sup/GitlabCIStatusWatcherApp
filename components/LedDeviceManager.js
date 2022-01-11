@@ -2,6 +2,7 @@ import React from "react"
 import { BleManager, Device } from 'react-native-ble-plx'
 import { ActivityIndicator, TouchableOpacity, View, Text, PermissionsAndroid, StyleSheet } from "react-native"
 import { colors } from "../styles"
+import { arrayBufferToBase64 } from '../utils/converters'
 
 export class LedDeviceManager extends React.Component {
   DISCONNECTED = 0
@@ -26,6 +27,7 @@ export class LedDeviceManager extends React.Component {
     }
   }
   render(){
+    this.sendCommand()
     return (
         <TouchableOpacity style={styles.mainContainer} onPress={() => this._switchDeviceConnection()} >
             <Text style={{fontSize: 15, flex: 0.95 }} numberOfLines={1}>BLE led strip light connection</Text>
@@ -60,29 +62,26 @@ export class LedDeviceManager extends React.Component {
         break
     }
   }
-  
-  setColor(colorRgb){
-    if (this.state.deviceCharacteristic === this.initState.deviceCharacteristic){
+  sendCommand(){
+    const { command }  = this.props
+    if (!command){
       return
     }
-    const frame = [0x7e, 0x07, 0x05, 0x03, colorRgb[0], colorRgb[1], colorRgb[2], 0x10, 0xef]
-    
-    this.state.deviceCharacteristic.writeWithoutResponse(this._arrayBufferToBase64(frame))
-    .then(() => {
-      console.warn('Success arrayBufferToBase64');
-    })
-    .catch((e) => console.log('Error arrayBufferToBase64', e));
+    let frame
+    if (this.state.connectionStatus === this.CONNECTED){
+      if (command.color){
+        console.log("[sendCommand]", command)
+        frame = [0x7e, 0x07, 0x05, 0x03, command.color.r, command.color.g, command.color.b, 0x10, 0xef]
+      }
+      this.state.deviceCharacteristic.writeWithoutResponse(arrayBufferToBase64(frame))
+      .then(() => {
+        console.warn('[sendCommand]', 'Success sent', command);
+      })
+      .catch((error) => console.warn('[sendCommand]', 'Error arrayBufferToBase64', error));
+    }
   }
 
-  _arrayBufferToBase64( buffer ) {
-    var binary = '';
-    var bytes = new Uint8Array( buffer );
-    var len = bytes.byteLength;
-    for (var i = 0; i < len; i++) {
-        binary += String.fromCharCode( bytes[ i ] );
-    }
-    return btoa( binary );
-  }
+  
   connectDevice(){
       if (this.state.connectionStatus != this.DISCONNECTED){
         return
