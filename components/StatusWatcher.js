@@ -3,7 +3,7 @@ import { colors } from "../styles"
 import { AutocompleteInput } from "react-native-autocomplete-input"
 import { Text, TouchableOpacity, View, FlatList, StyleSheet } from 'react-native'
 import { getGitlabProjects, getProjectBranches, getPipelineFromCommit, getPipelineJobs } from '../utils/gitlabApiFunctions'
-import { LedDeviceManager } from "./LedDeviceManager";
+import { LedDeviceManager, LightColors } from "./LedDeviceManager";
 import { hexToRgb } from '../utils/converters'
 
 export class StatusWatcher extends React.Component {
@@ -41,7 +41,7 @@ export class StatusWatcher extends React.Component {
         }
     getLedDeviceCommand(){
         if (this.state.pipeline){
-            rgbColor = hexToRgb(colors[this.state.pipeline.status])
+            rgbColor = hexToRgb(LightColors[this.state.pipeline.status])
             const command = {color: rgbColor}
             return command
         }

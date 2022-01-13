@@ -75,7 +75,7 @@ export class LedDeviceManager extends React.Component {
       }
       this.state.deviceCharacteristic.writeWithoutResponse(arrayBufferToBase64(frame))
       .then(() => {
-        console.warn('[sendCommand]', 'Success sent', command);
+        console.log('[sendCommand]', 'Success sent', command);
       })
       .catch((error) => console.warn('[sendCommand]', 'Error arrayBufferToBase64', error));
     }
@@ -178,6 +178,13 @@ export class LedDeviceManager extends React.Component {
   }
 }
 
+export const LightColors = {
+  pending: "#FFFF00",
+  running: "#0000FF",
+  success: "#00FF00",
+  failed: "#FF0000",
+  canceled: "#FFFFFF"
+}
 const styles = StyleSheet.create({
   mainContainer: {
     flexDirection: 'row',
