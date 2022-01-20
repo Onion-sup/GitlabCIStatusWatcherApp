@@ -18,6 +18,10 @@ public class CalendarModule extends ReactContextBaseJavaModule {
     CalendarModule(ReactApplicationContext context) {
         super(context);
         this.context = context;
+        Intent service = new Intent(this.context, MyTaskService.class);
+        Bundle bundle = new Bundle();
+        service.putExtras(bundle);
+        this.context.startService(service);
     }
 
     @Override
@@ -29,12 +33,6 @@ public class CalendarModule extends ReactContextBaseJavaModule {
     public void createCalendarEvent(String name, String location) {
         Log.i("CalendarModule", "Create event called with name: " + name
                 + " and location: " + location);
-        Intent service = new Intent(this.context, MyTaskService.class);
-        Bundle bundle = new Bundle();
 
-        bundle.putString("foo", "bar");
-        service.putExtras(bundle);
-
-        this.context.startService(service);
     }
 }

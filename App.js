@@ -23,7 +23,7 @@ const NewModuleButton = () => {
 };
 export default function App() {
   return (
-    <NewModuleButton/>
-    // <StatusWatcher/>
+    // <NewModuleButton/>
+    <StatusWatcher/>
   )
 }

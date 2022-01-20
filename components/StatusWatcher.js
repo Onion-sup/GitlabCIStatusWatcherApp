@@ -6,6 +6,9 @@ import { getGitlabProjects, getProjectBranches, getPipelineFromCommit, getPipeli
 import { LedDeviceManager, LightColors } from "./LedDeviceManager";
 import { hexToRgb } from '../utils/converters'
 
+export let projectSelected = undefined;
+export let branchSelected = undefined;
+
 export class StatusWatcher extends React.Component {
     constructor(props) {
         super(props);
@@ -108,7 +111,7 @@ export class StatusWatcher extends React.Component {
                     flatListProps={{
                         keyExtractor: (_, idx) => idx,
                         renderItem: ({ item }) =>
-                            <TouchableOpacity style={styles.suggestionListItem} onPress={() => this.setState( { projectSelected: item, projectsFound: [] }, () => this.updateProjectBranches())}>
+                            <TouchableOpacity style={styles.suggestionListItem} onPress={() => this.setProjectSelected(item)}>
                                 <Text style={styles.text}>{item.name}</Text>
                             </TouchableOpacity>
                     }}
@@ -116,7 +119,14 @@ export class StatusWatcher extends React.Component {
             </View>
         )
     }
-
+    setBranchSelected(branch){
+        branchSelected = branch
+        this.setState( { branchSelected: branch }, () => this.updatePipeline())
+    }
+    setProjectSelected(project){
+        projectSelected = project
+        this.setState( { projectSelected: project, projectsFound: [] }, () => this.updateProjectBranches())
+    }
     renderBranchList(){
         return (
             <View style={styles.branchListContainer}>
@@ -131,7 +141,7 @@ export class StatusWatcher extends React.Component {
     renderBranchItem(branch){
         const renderStatusPellet = this.state.pipeline && this.state.branchSelected
         return (
-            <TouchableOpacity style={styles.listItemContainer} onPress={() => this.setState( { branchSelected: branch }, () => this.updatePipeline())}>
+            <TouchableOpacity style={styles.listItemContainer} onPress={() => this.setBranchSelected( branch )}>
                 <Text style={{fontSize: 20, flex:0.9}} numberOfLines={1}>{branch.name}</Text>
                 { renderStatusPellet && this.state.branchSelected.name === branch.name ?  this.renderStatusPellet(this.state.pipeline.status) : null }
             </TouchableOpacity>
