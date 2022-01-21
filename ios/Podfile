@@ -12,6 +12,8 @@ target 'GitlabCIStatusWatcherApp' do
     :hermes_enabled => false
   )
 
+  pod 'react-native-background-timer', :path => '../node_modules/react-native-background-timer'
+
   target 'GitlabCIStatusWatcherAppTests' do
     inherit! :complete
     # Pods for testing

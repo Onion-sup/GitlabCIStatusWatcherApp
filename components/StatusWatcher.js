@@ -37,18 +37,12 @@ export class StatusWatcher extends React.Component {
                 <View style={styles.branchListAndPipelineContainer}>
                     { this.renderBranchList() }
                     { this.renderPipeline() }
-                    <LedDeviceManager command={this.getLedDeviceCommand()}/>
+                    <LedDeviceManager/>
                 </View>
             </View>
             )
         }
-    getLedDeviceCommand(){
-        if (this.state.pipeline){
-            rgbColor = hexToRgb(LightColors[this.state.pipeline.status])
-            const command = {color: rgbColor}
-            return command
-        }
-    }
+    
     updateProjectFound(searchString){
         getGitlabProjects(searchString)
         .then((projects) => this.setState({ projectsFound: projects }))

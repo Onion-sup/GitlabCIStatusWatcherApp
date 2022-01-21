@@ -4,6 +4,8 @@ import { ActivityIndicator, TouchableOpacity, View, Text, PermissionsAndroid, St
 import { colors } from "../styles"
 import { arrayBufferToBase64 } from '../utils/converters'
 
+export let deviceCharacteristic = undefined;
+
 export class LedDeviceManager extends React.Component {
   DISCONNECTED = 0
   CONNECTED = 1
@@ -27,7 +29,6 @@ export class LedDeviceManager extends React.Component {
     }
   }
   render(){
-    this.sendCommand()
     return (
         <TouchableOpacity style={styles.mainContainer} onPress={() => this._switchDeviceConnection()} >
             <Text style={{fontSize: 15, flex: 0.95 }} numberOfLines={1}>BLE led strip light connection</Text>
@@ -62,25 +63,6 @@ export class LedDeviceManager extends React.Component {
         break
     }
   }
-  sendCommand(){
-    const { command }  = this.props
-    if (!command){
-      return
-    }
-    let frame
-    if (this.state.connectionStatus === this.CONNECTED){
-      if (command.color){
-        console.log("[sendCommand]", command)
-        frame = [0x7e, 0x07, 0x05, 0x03, command.color.r, command.color.g, command.color.b, 0x10, 0xef]
-      }
-      this.state.deviceCharacteristic.writeWithoutResponse(arrayBufferToBase64(frame))
-      .then(() => {
-        console.log('[sendCommand]', 'Success sent', command);
-      })
-      .catch((error) => console.warn('[sendCommand]', 'Error arrayBufferToBase64', error));
-    }
-  }
-
   
   connectDevice(){
       if (this.state.connectionStatus != this.DISCONNECTED){
@@ -109,7 +91,8 @@ export class LedDeviceManager extends React.Component {
               console.log("[connectDevice]", "device connected")
               this.bleManager.stopDeviceScan()
               this.getDeviceCharacteristic(device)
-              .then(deviceCharacteristic => {
+              .then(char => {
+                deviceCharacteristic = char
                 this.setState({ connectionStatus: this.CONNECTED, device: device, deviceCharacteristic: deviceCharacteristic})
               })
             })
@@ -177,14 +160,19 @@ export class LedDeviceManager extends React.Component {
     }
   }
 }
-
-export const LightColors = {
-  pending: "#FFFF00",
-  running: "#0000FF",
-  success: "#00FF00",
-  failed: "#FF0000",
-  canceled: "#FFFFFF"
+export function sendCommand(characteristic, command){
+  let frame
+  if (command.color){
+  console.log("[sendCommand]", command)
+  frame = [0x7e, 0x07, 0x05, 0x03, command.color.r, command.color.g, command.color.b, 0x10, 0xef]
+  }
+  characteristic.writeWithoutResponse(arrayBufferToBase64(frame))
+  .then(() => {
+  console.log('[sendCommand]', 'Success sent', command);
+  })
+  .catch((error) => console.warn('[sendCommand]', 'Error: ', error));
 }
+
 const styles = StyleSheet.create({
   mainContainer: {
     flexDirection: 'row',
