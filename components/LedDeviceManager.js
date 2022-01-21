@@ -2,6 +2,9 @@ import React from "react"
 import { BleManager, Device } from 'react-native-ble-plx'
 import { ActivityIndicator, TouchableOpacity, View, Text, PermissionsAndroid, StyleSheet } from "react-native"
 import { colors } from "../styles"
+import { arrayBufferToBase64 } from '../utils/converters'
+
+export let deviceCharacteristic = undefined;
 
 export class LedDeviceManager extends React.Component {
   DISCONNECTED = 0
@@ -15,16 +18,19 @@ export class LedDeviceManager extends React.Component {
       this.DEVICE_ID = "BE:59:30:00:2D:B4"
       this.SERVICE_ID = "0000fff0-0000-1000-8000-00805f9b34fb"
       this.CHARACTERISTIC_ID = 6
-      this.state = {
+      this.initState = {
         isScanning: false,
         device: undefined,
         deviceCharacteristic: undefined,
         connectionStatus: this.DISCONNECTED
       }
+      this.state = {
+        ...this.initState
+    }
   }
   render(){
     return (
-        <TouchableOpacity style={styles.mainContainer} onPress={() => this.switchDeviceConnection()} >
+        <TouchableOpacity style={styles.mainContainer} onPress={() => this._switchDeviceConnection()} >
             <Text style={{fontSize: 15, flex: 0.95 }} numberOfLines={1}>BLE led strip light connection</Text>
             {this.state.connectionStatus == this.CONNECTING || this.state.connectionStatus == this.DISCONNECTING ? (
               <ActivityIndicator color={'grey'} size={25} />
@@ -44,7 +50,7 @@ export class LedDeviceManager extends React.Component {
     )
   }
   
-  switchDeviceConnection = () => {
+  _switchDeviceConnection = () => {
     switch (this.state.connectionStatus){
       case this.CONNECTING:
           this.bleManager.stopDeviceScan()
@@ -57,7 +63,7 @@ export class LedDeviceManager extends React.Component {
         break
     }
   }
-
+  
   connectDevice(){
       if (this.state.connectionStatus != this.DISCONNECTED){
         return
@@ -85,7 +91,8 @@ export class LedDeviceManager extends React.Component {
               console.log("[connectDevice]", "device connected")
               this.bleManager.stopDeviceScan()
               this.getDeviceCharacteristic(device)
-              .then(deviceCharacteristic => {
+              .then(char => {
+                deviceCharacteristic = char
                 this.setState({ connectionStatus: this.CONNECTED, device: device, deviceCharacteristic: deviceCharacteristic})
               })
             })
@@ -111,7 +118,7 @@ export class LedDeviceManager extends React.Component {
       device.isConnected()
       .then((isConnected) => {
         if (!isConnected){
-          this.setState( {device: device, connectionStatus: this.DISCONNECTED} )
+          this.setState( this.initState )
         }
         else {
           this.setState( {device: device, connectionStatus: this.CONNECTED} )
@@ -152,6 +159,18 @@ export class LedDeviceManager extends React.Component {
       return false
     }
   }
+}
+export function sendCommand(characteristic, command){
+  let frame
+  if (command.color){
+  console.log("[sendCommand]", command)
+  frame = [0x7e, 0x07, 0x05, 0x03, command.color.r, command.color.g, command.color.b, 0x10, 0xef]
+  }
+  characteristic.writeWithoutResponse(arrayBufferToBase64(frame))
+  .then(() => {
+  console.log('[sendCommand]', 'Success sent', command);
+  })
+  .catch((error) => console.warn('[sendCommand]', 'Error: ', error));
 }
 
 const styles = StyleSheet.create({

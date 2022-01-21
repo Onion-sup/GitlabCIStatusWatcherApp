@@ -3,9 +3,13 @@ import { colors } from "../styles"
 import { AutocompleteInput } from "react-native-autocomplete-input"
 import { Text, TouchableOpacity, View, FlatList, StyleSheet } from 'react-native'
 import { getGitlabProjects, getProjectBranches, getPipelineFromCommit, getPipelineJobs } from '../utils/gitlabApiFunctions'
-import { LedDeviceManager } from "./LedDeviceManager";
+import { LedDeviceManager, LightColors } from "./LedDeviceManager";
+import { hexToRgb } from '../utils/converters'
 
-export class MainPannel extends React.Component {
+export let projectSelected = undefined;
+export let branchSelected = undefined;
+
+export class StatusWatcher extends React.Component {
     constructor(props) {
         super(props);
         this.initState = {
@@ -19,8 +23,13 @@ export class MainPannel extends React.Component {
         this.state = {
             ...this.initState
         }
+        setInterval(()=>{
+            this.updateProjectBranches()
+            this.updatePipeline()
+            this.updatePipelineJobs()
+        }, 5000)
     }
-
+    
     render() {
         return (
             <View style={styles.mainContainer}>
@@ -33,22 +42,51 @@ export class MainPannel extends React.Component {
             </View>
             )
         }
+    
     updateProjectFound(searchString){
         getGitlabProjects(searchString)
         .then((projects) => this.setState({ projectsFound: projects }))
     }
     updateProjectBranches(){
+        if (this.state.projectSelected === this.initState.projectSelected){
+            return
+        }
         getProjectBranches(this.state.projectSelected.id)
         .then((branches) => this.setState({ branches: branches}))
+        .catch((error) => {
+            console.warn("[updateProjectBranches]", error)
+            this.setState({
+                branches: this.initState.branches
+            })
+        })
     }
     updatePipeline(){
+        if (this.state.projectSelected === this.initState.projectSelected || this.state.branchSelected === this.initState.branchSelected){
+            return
+        }
         getPipelineFromCommit(this.state.projectSelected.id, this.state.branchSelected.commit.id)
         .then((pipelines) => this.setState({ pipeline: pipelines[0]}, () => this.updatePipelineJobs()))
+        .catch((error) => {
+            console.warn("[updatePipeline]", error)
+            this.setState({ 
+                pipeline: this.initState.pipeline
+            })
+        })
     }
     updatePipelineJobs(){
+        if (this.state.projectSelected === this.initState.projectSelected || this.state.pipeline === this.initState.pipeline){
+            return
+        }
         getPipelineJobs(this.state.projectSelected.id, this.state.pipeline.id)
         .then((jobs) => this.setState( {pipelineJobs: jobs}))
+        .catch((error) => {
+            console.warn("[updatePipelineJobs]", error)
+            this.setState({ 
+                pipelineJobs: this.initState.pipelineJobs
+            })
+        })
     }
+    
     renderProjectSearchBar(){
         return (
             <View style={styles.autocompleteContainer}>
@@ -67,7 +105,7 @@ export class MainPannel extends React.Component {
                     flatListProps={{
                         keyExtractor: (_, idx) => idx,
                         renderItem: ({ item }) =>
-                            <TouchableOpacity style={styles.suggestionListItem} onPress={() => this.setState( { projectSelected: item, projectsFound: [] }, () => this.updateProjectBranches())}>
+                            <TouchableOpacity style={styles.suggestionListItem} onPress={() => this.setProjectSelected(item)}>
                                 <Text style={styles.text}>{item.name}</Text>
                             </TouchableOpacity>
                     }}
@@ -75,7 +113,14 @@ export class MainPannel extends React.Component {
             </View>
         )
     }
-
+    setBranchSelected(branch){
+        branchSelected = branch
+        this.setState( { branchSelected: branch }, () => this.updatePipeline())
+    }
+    setProjectSelected(project){
+        projectSelected = project
+        this.setState( { projectSelected: project, projectsFound: [] }, () => this.updateProjectBranches())
+    }
     renderBranchList(){
         return (
             <View style={styles.branchListContainer}>
@@ -90,25 +135,14 @@ export class MainPannel extends React.Component {
     renderBranchItem(branch){
         const renderStatusPellet = this.state.pipeline && this.state.branchSelected
         return (
-            <TouchableOpacity style={styles.listItemContainer} onPress={() => this.setState( { branchSelected: branch }, () => this.updatePipeline())}>
+            <TouchableOpacity style={styles.listItemContainer} onPress={() => this.setBranchSelected( branch )}>
                 <Text style={{fontSize: 20, flex:0.9}} numberOfLines={1}>{branch.name}</Text>
                 { renderStatusPellet && this.state.branchSelected.name === branch.name ?  this.renderStatusPellet(this.state.pipeline.status) : null }
             </TouchableOpacity>
         )
     }
     renderStatusPellet(status){
-        switch (status) {
-            case 'pending':
-                return <View style={styles.pendingPellet}></View>
-            case 'running':
-                return <View style={styles.runningPellet}></View>
-            case 'success':
-                return <View style={styles.successPellet}></View>
-            case 'failed':
-                return <View style={styles.failedPellet}></View>
-            case 'canceled':
-                return <View style={styles.canceledPellet}></View>
-        }
+        return <View style={[styles.pellet, {backgroundColor: colors[status]}]}></View>
     }
 
     renderPipeline(){
@@ -183,39 +217,10 @@ const styles = StyleSheet.create({
         paddingLeft: 10,
         paddingRight: 10,
     },
-    pendingPellet: {
+    pellet: {
         width: 25,
         height: 25,
         borderRadius: 25/2,
-        backgroundColor: colors.pending,
         borderWidth: 1
-    },
-    runningPellet: {
-        width: 25,
-        height: 25,
-        borderRadius: 25/2,
-        backgroundColor: colors.running,
-        borderWidth: 1
-    },
-    successPellet: {
-        width: 25,
-        height: 25,
-        borderRadius: 25/2,
-        backgroundColor: colors.success,
-        borderWidth: 1
-    },
-    failedPellet: {
-        width: 25,
-        height: 25,
-        borderRadius: 25/2,
-        backgroundColor: colors.failed,
-        borderWidth: 1
-    },
-    canceledPellet: {
-        width: 25,
-        height: 25,
-        borderRadius: 25/2,
-        backgroundColor: colors.canceled,
-        borderWidth: 1
-    },
+    }
   });

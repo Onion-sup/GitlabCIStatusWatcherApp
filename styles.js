@@ -8,3 +8,11 @@ export const colors = {
     failed: "#E74C3C",
     canceled: "#F0F3F4"
 }
+
+export const LedStripLightColors = {
+    pending: "#FFFF00",
+    running: "#0000FF",
+    success: "#00FF00",
+    failed: "#FF0000",
+    canceled: "#FFFFFF"
+  }
