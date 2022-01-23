@@ -6,6 +6,7 @@ import { hexToRgb } from '../utils/converters'
 import { LedStripLightColors } from '../styles'
 
 BackgroundTimer.runBackgroundTimer(() => { 
+    
     console.log('backgroundTimer')
     if (projectSelected != undefined && branchSelected != undefined){
         let pipelineStatus = null
