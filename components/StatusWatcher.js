@@ -37,7 +37,7 @@ export function StatusWatcher() {
         runBackgroundTimer = true
         BackgroundTimer.runBackgroundTimer(() => { 
             if (g_projectSelected && g_branchSelected){
-                updatePipeline(projectSelected, branchSelected, setPipeline, setPipelineJobs)                
+                updatePipeline(g_projectSelected, g_branchSelected, setPipeline, setPipelineJobs)                
                 if (g_pipeline){
                     dispatch(updatePipelineStatus(g_pipeline.status))
                 }
