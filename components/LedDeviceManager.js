@@ -9,14 +9,6 @@ import { LedStripLightColors } from '../styles'
 
 import { useSelector } from 'react-redux'
 
-// export function LedDeviceManager(){
-  
-//   const pipelineStatus = useSelector(state => state.pipelineStatus.value)      
-//   console.log('[LedDeviceManager]', pipelineStatus)
-//   return (
-//       <View style={styles.mainContainer}>
-//       </View>
-//   )
 const DISCONNECTED = "DISCONNECTED"
 const CONNECTED = "CONNECTED"
 const CONNECTING = "CONNECTING"

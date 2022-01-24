@@ -1,23 +1,13 @@
 import BackgroundTimer from 'react-native-background-timer';
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { colors } from "../styles"
 import { AutocompleteInput } from "react-native-autocomplete-input"
 import { Text, TouchableOpacity, View, FlatList, StyleSheet } from 'react-native'
 import { getGitlabProjects, getProjectBranches, getPipelineFromCommit, getPipelineJobs } from '../utils/gitlabApiFunctions'
 import { LedDeviceManager } from "./LedDeviceManager";
-import { hexToRgb } from '../utils/converters'
-import { useSelector, useDispatch } from 'react-redux'
+import { useDispatch } from 'react-redux'
 import { updatePipelineStatus } from '../redux/pipelineStatusSlice';
 
-// export function StatusWatcher(){
-
-//     console.log('[StatusWatcher]')
-//     return (
-//         <View style={styles.mainContainer}>        
-//             <LedDeviceManager/>
-//         </View>
-//     )
-// }
 let g_projectSelected = null
 let g_branchSelected = null
 let g_pipeline = null
