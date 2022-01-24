@@ -10,16 +10,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { updatePipelineStatus } from '../redux/pipelineStatusSlice';
 
 // export function StatusWatcher(){
-//     const statusArray = ['fail', 'success', 'running']
-//     const dispatch = useDispatch()
-//     let i = 0
-//     BackgroundTimer.runBackgroundTimer(() => { 
-        
-//         // console.log('[StatusWatcher]', statusArray[i])
-//         {dispatch(updatePipelineStatus(statusArray[i]))}
-//         i = (i+1)%3
-//     }, 
-//     3000);
+
 //     console.log('[StatusWatcher]')
 //     return (
 //         <View style={styles.mainContainer}>        
@@ -27,6 +18,10 @@ import { updatePipelineStatus } from '../redux/pipelineStatusSlice';
 //         </View>
 //     )
 // }
+let g_projectSelected = null
+let g_branchSelected = null
+let g_pipeline = null
+let runBackgroundTimer = false
 export function StatusWatcher() {
     const [projectSelected, setProjectSelected] = useState(null)
     const [branchSelected, setBranchSelected] = useState(null)
@@ -34,7 +29,22 @@ export function StatusWatcher() {
     const [branches, setBranches] = useState([])
     const [pipeline, setPipeline] = useState(null)
     const [pipelineJobs, setPipelineJobs] = useState([])
-
+    const dispatch = useDispatch()
+    g_projectSelected = projectSelected
+    g_branchSelected = branchSelected
+    g_pipeline = pipeline
+    if (!runBackgroundTimer){
+        runBackgroundTimer = true
+        BackgroundTimer.runBackgroundTimer(() => { 
+            if (g_projectSelected && g_branchSelected){
+                updatePipeline(projectSelected, branchSelected, setPipeline, setPipelineJobs)                
+                if (g_pipeline){
+                    dispatch(updatePipelineStatus(g_pipeline.status))
+                }
+            }
+        }, 
+        3000);
+    }
     return (
         <View style={styles.mainContainer}>
             { renderProjectSearchBar(projectsFound, setProjectsFound, projectSelected, setProjectSelected, setBranches, setPipelineJobs, setBranchSelected) }
