@@ -1,5 +1,5 @@
 import BackgroundTimer from 'react-native-background-timer';
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { colors } from "../styles"
 import { AutocompleteInput } from "react-native-autocomplete-input"
 import { Text, TouchableOpacity, View, FlatList, StyleSheet } from 'react-native'
@@ -9,185 +9,159 @@ import { hexToRgb } from '../utils/converters'
 import { useSelector, useDispatch } from 'react-redux'
 import { updatePipelineStatus } from '../redux/pipelineStatusSlice';
 
-export let projectSelected = undefined;
-export let branchSelected = undefined;
-
-
-export function StatusWatcher(){
-    const statusArray = ['fail', 'success', 'running']
-    const dispatch = useDispatch()
-    let i = 0
-    BackgroundTimer.runBackgroundTimer(() => { 
+// export function StatusWatcher(){
+//     const statusArray = ['fail', 'success', 'running']
+//     const dispatch = useDispatch()
+//     let i = 0
+//     BackgroundTimer.runBackgroundTimer(() => { 
         
-        // console.log('[StatusWatcher]', statusArray[i])
-        {dispatch(updatePipelineStatus(statusArray[i]))}
-        i = (i+1)%3
-    }, 
-    3000);
-    console.log('[StatusWatcher]')
-    return (
-        <View style={styles.mainContainer}>        
-            <LedDeviceManager/>
-        </View>
-    )
-}
-// export class StatusWatcher extends React.Component {
-//     constructor(props) {
-//         super(props);
-//         this.initState = {
-//             projectSelected: undefined,
-//             branchSelected: undefined,
-//             projectsFound: [],
-//             branches: [],
-//             pipeline: undefined,
-//             pipelineJobs: []
-//         }
-//         this.state = {
-//             ...this.initState
-//         }
-//         setInterval(()=>{
-//             this.updateProjectBranches()
-//             this.updatePipeline()
-//             this.updatePipelineJobs()
-//         }, 5000)
-//     }
-    
-//     render() {
-//         return (
-//             <View style={styles.mainContainer}>
-//                 { this.renderProjectSearchBar() }
-//                 <View style={styles.branchListAndPipelineContainer}>
-//                     { this.renderBranchList() }
-//                     { this.renderPipeline() }
-//                     <LedDeviceManager/>
-//                 </View>
-//             </View>
-//             )
-//         }
-    
-//     updateProjectFound(searchString){
-//         getGitlabProjects(searchString)
-//         .then((projects) => this.setState({ projectsFound: projects }))
-//     }
-//     updateProjectBranches(){
-//         if (this.state.projectSelected === this.initState.projectSelected){
-//             return
-//         }
-//         getProjectBranches(this.state.projectSelected.id)
-//         .then((branches) => this.setState({ branches: branches}))
-//         .catch((error) => {
-//             console.warn("[updateProjectBranches]", error)
-//             this.setState({
-//                 branches: this.initState.branches
-//             })
-//         })
-//     }
-//     updatePipeline(){
-//         if (this.state.projectSelected === this.initState.projectSelected || this.state.branchSelected === this.initState.branchSelected){
-//             return
-//         }
-//         getPipelineFromCommit(this.state.projectSelected.id, this.state.branchSelected.commit.id)
-//         .then((pipelines) => this.setState({ pipeline: pipelines[0]}, () => this.updatePipelineJobs()))
-//         .catch((error) => {
-//             console.warn("[updatePipeline]", error)
-//             this.setState({ 
-//                 pipeline: this.initState.pipeline
-//             })
-//         })
-//     }
-//     updatePipelineJobs(){
-//         if (this.state.projectSelected === this.initState.projectSelected || this.state.pipeline === this.initState.pipeline){
-//             return
-//         }
-//         getPipelineJobs(this.state.projectSelected.id, this.state.pipeline.id)
-//         .then((jobs) => this.setState( {pipelineJobs: jobs}))
-//         .catch((error) => {
-//             console.warn("[updatePipelineJobs]", error)
-//             this.setState({ 
-//                 pipelineJobs: this.initState.pipelineJobs
-//             })
-//         })
-//     }
-    
-//     renderProjectSearchBar(){
-//         return (
-//             <View style={styles.autocompleteContainer}>
-//                 <AutocompleteInput
-//                     style={styles.searchBar}
-//                     placeholder="Search Gitlab Project..."
-//                     data={this.state.projectsFound}
-//                     value={ (this.state.projectSelected) ? this.state.projectSelected.name : null}
-//                     onChangeText={(text) => {
-//                         this.setState({ 
-//                             ...this.initState
-//                         });
-//                         this.updateProjectFound(text)
-//                         }
-//                     }
-//                     flatListProps={{
-//                         keyExtractor: (_, idx) => idx,
-//                         renderItem: ({ item }) =>
-//                             <TouchableOpacity style={styles.suggestionListItem} onPress={() => this.setProjectSelected(item)}>
-//                                 <Text style={styles.text}>{item.name}</Text>
-//                             </TouchableOpacity>
-//                     }}
-//                 />
-//             </View>
-//         )
-//     }
-//     setBranchSelected(branch){
-//         branchSelected = branch
-//         this.setState( { branchSelected: branch }, () => this.updatePipeline())
-//     }
-//     setProjectSelected(project){
-//         projectSelected = project
-//         this.setState( { projectSelected: project, projectsFound: [] }, () => this.updateProjectBranches())
-//     }
-//     renderBranchList(){
-//         return (
-//             <View style={styles.branchListContainer}>
-//                 <FlatList
-//                 data={this.state.branches}
-//                 renderItem= {({ item }) => this.renderBranchItem(item) }
-//                 keyExtractor={item => item.name}
-//             /> 
-//           </View>
-//         )
-//     }
-//     renderBranchItem(branch){
-//         const renderStatusPellet = this.state.pipeline && this.state.branchSelected
-//         return (
-//             <TouchableOpacity style={styles.listItemContainer} onPress={() => this.setBranchSelected( branch )}>
-//                 <Text style={{fontSize: 20, flex:0.9}} numberOfLines={1}>{branch.name}</Text>
-//                 { renderStatusPellet && this.state.branchSelected.name === branch.name ?  this.renderStatusPellet(this.state.pipeline.status) : null }
-//             </TouchableOpacity>
-//         )
-//     }
-//     renderStatusPellet(status){
-//         return <View style={[styles.pellet, {backgroundColor: colors[status]}]}></View>
-//     }
-
-//     renderPipeline(){
-//         return(
-//             <View style={styles.pipelineContainer}>
-//                 <FlatList
-//                 data={this.state.pipelineJobs}
-//                 renderItem= {({ item }) => this.renderJobItem(item) }
-//                 keyExtractor={item => item.name}
-//                 /> 
-//             </View>
-//         )
-//     }
-//     renderJobItem(job){
-//         return (
-//             <View style={styles.listItemContainer} >
-//                 <Text style={{fontSize: 20, flex:0.9}} numberOfLines={1}>{job.name}</Text>
-//                 { this.renderStatusPellet(job.status) }
-//             </View>
-//         )
-//     }
-    
+//         // console.log('[StatusWatcher]', statusArray[i])
+//         {dispatch(updatePipelineStatus(statusArray[i]))}
+//         i = (i+1)%3
+//     }, 
+//     3000);
+//     console.log('[StatusWatcher]')
+//     return (
+//         <View style={styles.mainContainer}>        
+//             <LedDeviceManager/>
+//         </View>
+//     )
 // }
+export function StatusWatcher() {
+    const [projectSelected, setProjectSelected] = useState(null)
+    const [branchSelected, setBranchSelected] = useState(null)
+    const [projectsFound, setProjectsFound] = useState([])
+    const [branches, setBranches] = useState([])
+    const [pipeline, setPipeline] = useState(null)
+    const [pipelineJobs, setPipelineJobs] = useState([])
+
+    return (
+        <View style={styles.mainContainer}>
+            { renderProjectSearchBar(projectsFound, setProjectsFound, projectSelected, setProjectSelected, setBranches, setPipelineJobs, setBranchSelected) }
+            <View style={styles.branchListAndPipelineContainer}>
+                { renderBranchList(branches, branchSelected, setBranchSelected, projectSelected, pipeline, setPipeline, setPipelineJobs) }
+                { renderPipelineJobs(pipelineJobs) }
+                <LedDeviceManager/>
+            </View>
+        </View>
+        )
+    }
+    
+    function updateProjectBranches(projectSelected, setBranches){
+        if (!projectSelected){
+            return
+        }
+        getProjectBranches(projectSelected.id)
+        .then((branches) => setBranches(branches))
+        .catch((error) => {
+            console.warn("[updateProjectBranches]", error)
+        })
+    }
+    function updatePipeline(projectSelected, branchSelected, setPipeline, setPipelineJobs){
+        if (!projectSelected || !branchSelected){
+            return
+        }
+        getPipelineFromCommit(projectSelected.id, branchSelected.commit.id)
+        .then((pipelines) => {
+            setPipeline(pipelines[0])
+            updatePipelineJobs(setPipelineJobs, projectSelected, pipelines[0])
+        })
+        .catch((error) => {
+            console.warn("[updatePipeline]", error)
+        })
+    }
+    function updatePipelineJobs(setPipelineJobs, projectSelected, pipeline){
+        if (!projectSelected || !pipeline){
+            return
+        }
+        getPipelineJobs(projectSelected.id, pipeline.id)
+        .then((jobs) => setPipelineJobs(jobs))
+        .catch((error) => {
+            console.warn("[updatePipelineJobs]", error)
+        })
+    }
+    
+    function renderProjectSearchBar(projectsFound, setProjectsFound, projectSelected, setProjectSelected, setBranches, setPipelineJobs, setBranchSelected){
+        return (
+            <View style={styles.autocompleteContainer}>
+                <AutocompleteInput
+                    style={styles.searchBar}
+                    placeholder="Search Gitlab Project..."
+                    data={projectsFound}
+                    value={ (projectSelected) ? projectSelected.name : null}
+                    onChangeText={(searchString) => {
+                        setPipelineJobs([])
+                        setBranchSelected(null)
+                        setProjectSelected(null)
+                        setProjectsFound([])
+                        setBranches([])
+                        getGitlabProjects(searchString).then((projects) => setProjectsFound(projects))
+                        }
+                    }
+                    flatListProps={{
+                        keyExtractor: (_, idx) => idx,
+                        renderItem: ({ item }) =>
+                            <TouchableOpacity style={styles.suggestionListItem} onPress={() => {
+                                setProjectSelected(item)
+                                setProjectsFound([])
+                                updateProjectBranches(item, setBranches)
+                            }}>
+                                <Text style={styles.text}>{item.name}</Text>
+                            </TouchableOpacity>
+                    }}
+                />
+            </View>
+        )
+    }
+
+    function renderBranchList(branches, branchSelected, setBranchSelected, projectSelected, pipeline, setPipeline, setPipelineJobs){
+        return (
+            <View style={styles.branchListContainer}>
+                <FlatList
+                data={branches}
+                renderItem= {({ item }) => renderBranchItem(item, branchSelected, setBranchSelected, projectSelected, pipeline, setPipeline, setPipelineJobs) }
+                keyExtractor={item => item.name}
+            /> 
+          </View>
+        )
+    }
+    function renderBranchItem(branchItem, branchSelected, setBranchSelected, projectSelected, pipeline, setPipeline, setPipelineJobs){
+        const _renderStatusPellet = pipeline && branchSelected
+        return (
+            <TouchableOpacity style={styles.listItemContainer} onPress={() =>{
+                setBranchSelected( branchItem )
+                updatePipeline(projectSelected, branchItem, setPipeline, setPipelineJobs)
+            }}>
+                <Text style={{fontSize: 20, flex:0.9}} numberOfLines={1}>{branchItem.name}</Text>
+                { _renderStatusPellet && branchSelected.name === branchItem.name ?  renderStatusPellet(pipeline.status) : null }
+            </TouchableOpacity>
+        )
+    }
+    function renderStatusPellet(status){
+        return <View style={[styles.pellet, {backgroundColor: colors[status]}]}></View>
+    }
+
+    function renderPipelineJobs(pipelineJobs){
+        return(
+            <View style={styles.pipelineContainer}>
+                <FlatList
+                data={pipelineJobs}
+                renderItem= {({ item }) => renderJobItem(item) }
+                keyExtractor={item => item.name}
+                /> 
+            </View>
+        )
+    }
+    function renderJobItem(job){
+        return (
+            <View style={styles.listItemContainer} >
+                <Text style={{fontSize: 20, flex:0.9}} numberOfLines={1}>{job.name}</Text>
+                { renderStatusPellet(job.status) }
+            </View>
+        )
+    }
+    
+
 
 const styles = StyleSheet.create({
     mainContainer: {
