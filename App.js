@@ -1,9 +1,13 @@
 import React from "react"
 import { StatusWatcher } from "./components/StatusWatcher"
-require('./services/BackgroundTimer.js')
+import store from './redux/store'
+import { Provider } from 'react-redux'
 
+// require('./services/BackgroundTimer.js')
 export default function App() {
   return (
-    <StatusWatcher/>
+    <Provider store={store}>
+      <StatusWatcher/>
+    </Provider>
   )
 }

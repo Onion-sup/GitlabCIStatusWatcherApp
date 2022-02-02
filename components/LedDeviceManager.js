@@ -1,80 +1,82 @@
-import React from "react"
+import BackgroundTimer from 'react-native-background-timer';
+import React, { useState } from "react"
 import { BleManager, Device } from 'react-native-ble-plx'
 import { ActivityIndicator, TouchableOpacity, View, Text, PermissionsAndroid, StyleSheet } from "react-native"
 import { colors } from "../styles"
 import { arrayBufferToBase64 } from '../utils/converters'
+import { hexToRgb } from '../utils/converters'
+import { LedStripLightColors } from '../styles'
 
-export let deviceCharacteristic = undefined;
+import { useSelector } from 'react-redux'
 
-export class LedDeviceManager extends React.Component {
-  DISCONNECTED = 0
-  CONNECTED = 1
-  CONNECTING = 2
-  DISCONNECTING = 3
-  constructor(props) {
-      super(props)
-      this.bleManager = new BleManager()
-      this.requestLocationPermission()
-      this.DEVICE_ID = "BE:59:30:00:2D:B4"
-      this.SERVICE_ID = "0000fff0-0000-1000-8000-00805f9b34fb"
-      this.CHARACTERISTIC_ID = 6
-      this.initState = {
-        isScanning: false,
-        device: undefined,
-        deviceCharacteristic: undefined,
-        connectionStatus: this.DISCONNECTED
-      }
-      this.state = {
-        ...this.initState
-    }
+const DISCONNECTED = "DISCONNECTED"
+const CONNECTED = "CONNECTED"
+const CONNECTING = "CONNECTING"
+const DISCONNECTING = "DISCONNECTING"
+const bleManager = new BleManager()
+requestLocationPermission()
+const DEVICE_ID = "BE:59:30:00:2D:B4"
+const SERVICE_ID = "0000fff0-0000-1000-8000-00805f9b34fb"
+const CHARACTERISTIC_ID = 6
+
+export function LedDeviceManager() {
+
+  const pipelineStatus = useSelector(state => state.pipelineStatus.value)
+  const [connectionStatus, setConnectionStatus] = useState(DISCONNECTED)
+  const [device, setDevice] = useState(null)
+  const [deviceCharacteristic, setDeviceCharacteristic] = useState(null)
+  
+  if (pipelineStatus && connectionStatus == CONNECTED){
+    const rgbColor = hexToRgb(LedStripLightColors[pipelineStatus])
+    const command = {color: rgbColor}
+    sendCommand(deviceCharacteristic, command)
   }
-  render(){
-    return (
-        <TouchableOpacity style={styles.mainContainer} onPress={() => this._switchDeviceConnection()} >
-            <Text style={{fontSize: 15, flex: 0.95 }} numberOfLines={1}>BLE led strip light connection</Text>
-            {this.state.connectionStatus == this.CONNECTING || this.state.connectionStatus == this.DISCONNECTING ? (
-              <ActivityIndicator color={'grey'} size={25} />
-              ) : (
-                this.state.connectionStatus == this.CONNECTED ? (
-                <View style={styles.connectedPellet}></View>
-                )  : ( 
-                  this.state.connectionStatus == this.DISCONNECTED ? (
-                    <View style={styles.disconnectedPellet}></View>
-                  ) 
-                  : (
-                    null
-                  )
+
+  return (
+      <TouchableOpacity style={styles.mainContainer} onPress={() => {
+        switch (connectionStatus){
+          case CONNECTING:
+            bleManager.stopDeviceScan()
+            setConnectionStatus(DISCONNECTED)
+            break
+          case DISCONNECTED:
+            connectDevice(connectionStatus, setConnectionStatus, setDevice, setDeviceCharacteristic)
+            break
+          case CONNECTED:
+            disconnectDevice(connectionStatus, setConnectionStatus, device)
+            break
+        }      
+      }}>
+          <Text style={{fontSize: 15, flex: 0.95 }} numberOfLines={1}>BLE led strip light connection</Text>
+          {connectionStatus == CONNECTING || connectionStatus == DISCONNECTING ? (
+            <ActivityIndicator color={'grey'} size={25} />
+            ) : (
+              connectionStatus == CONNECTED ? (
+              <View style={styles.connectedPellet}></View>
+              )  : ( 
+                connectionStatus == DISCONNECTED ? (
+                  <View style={styles.disconnectedPellet}></View>
+                ) 
+                : (
+                  null
                 )
-            )}
-        </TouchableOpacity>
-    )
-  }
-  
-  _switchDeviceConnection = () => {
-    switch (this.state.connectionStatus){
-      case this.CONNECTING:
-          this.bleManager.stopDeviceScan()
-          this.setState({ connectionStatus: this.DISCONNECTED })
-      case this.DISCONNECTED:
-        this.connectDevice()
-        break
-      case this.CONNECTED:
-        this.disconnectDevice()
-        break
-    }
-  }
-  
-  connectDevice(){
-      if (this.state.connectionStatus != this.DISCONNECTED){
+              )
+          )}
+      </TouchableOpacity>
+  )
+}
+
+function connectDevice(connectionStatus, setConnectionStatus, setDevice, setDeviceCharacteristic){
+      if (connectionStatus != DISCONNECTED){
         return
       }
-      this.setState({ connectionStatus: this.CONNECTING})
+      setConnectionStatus(CONNECTING)
       // scan devices
       let deviceFound = false
-      this.bleManager.startDeviceScan(null, null, (error, scannedDevice) => {
+      bleManager.startDeviceScan(null, null, (error, scannedDevice) => {
         if (error) {
           console.warn("[connectDevice]", error)
-          this.setState({ connectionStatus: this.DISCONNECTED})
+          setConnectionStatus(DISCONNECTED)
           return
         }
         if (deviceFound == true){
@@ -83,17 +85,18 @@ export class LedDeviceManager extends React.Component {
         }
         if (scannedDevice) {
           console.log("[connectDevice]", "scanned device:", scannedDevice.name, scannedDevice.id)
-          if (scannedDevice.id == this.DEVICE_ID){
+          if (scannedDevice.id == DEVICE_ID){
             deviceFound = true
             console.log("[connectDevice]", "connecting to", scannedDevice.id)
             scannedDevice.connect()
             .then((device) => {
               console.log("[connectDevice]", "device connected")
-              this.bleManager.stopDeviceScan()
-              this.getDeviceCharacteristic(device)
+              bleManager.stopDeviceScan()
+              getDeviceCharacteristic(device)
               .then(char => {
-                deviceCharacteristic = char
-                this.setState({ connectionStatus: this.CONNECTED, device: device, deviceCharacteristic: deviceCharacteristic})
+                setDevice(device)
+                setDeviceCharacteristic(char)
+                setConnectionStatus(CONNECTED)
               })
             })
             .catch((error) => {
@@ -108,35 +111,27 @@ export class LedDeviceManager extends React.Component {
       })
   }
   
-  disconnectDevice(){
-    if (this.state.connectionStatus != this.CONNECTED){
+function disconnectDevice(connectionStatus, setConnectionStatus, device){
+    if (connectionStatus != CONNECTED){
       return
     }
-    this.setState({ connectionStatus: this.DISCONNECTING })
-    this.state.device.cancelConnection()
+    setConnectionStatus(DISCONNECTING)
+    device.cancelConnection()
     .then((device) => {
-      device.isConnected()
-      .then((isConnected) => {
-        if (!isConnected){
-          this.setState( this.initState )
-        }
-        else {
-          this.setState( {device: device, connectionStatus: this.CONNECTED} )
-        }
-      }) 
+      setConnectionStatus(DISCONNECTED)
     })
   }
   
-  async getDeviceCharacteristic(device){
+async function getDeviceCharacteristic(device){
     const allServicesAndCharacteristics = await device.discoverAllServicesAndCharacteristics()
     const services = await allServicesAndCharacteristics.services()
-    const service = services.find(service => service.uuid == this.SERVICE_ID)
+    const service = services.find(service => service.uuid == SERVICE_ID)
     const charArray = await service.characteristics()
-    const char = charArray.find(char => char.id == this.CHARACTERISTIC_ID)
+    const char = charArray.find(char => char.id == CHARACTERISTIC_ID)
     return char
   }
   
-  async requestLocationPermission() {
+async function requestLocationPermission() {
     try {
       const granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION, {
@@ -159,7 +154,7 @@ export class LedDeviceManager extends React.Component {
       return false
     }
   }
-}
+
 export function sendCommand(characteristic, command){
   let frame
   if (command.color){

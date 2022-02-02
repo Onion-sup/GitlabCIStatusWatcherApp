@@ -1,111 +1,111 @@
-import React from "react";
+import BackgroundTimer from 'react-native-background-timer';
+import React, { useState } from "react";
 import { colors } from "../styles"
 import { AutocompleteInput } from "react-native-autocomplete-input"
 import { Text, TouchableOpacity, View, FlatList, StyleSheet } from 'react-native'
 import { getGitlabProjects, getProjectBranches, getPipelineFromCommit, getPipelineJobs } from '../utils/gitlabApiFunctions'
-import { LedDeviceManager, LightColors } from "./LedDeviceManager";
-import { hexToRgb } from '../utils/converters'
+import { LedDeviceManager } from "./LedDeviceManager";
+import { useDispatch } from 'react-redux'
+import { updatePipelineStatus } from '../redux/pipelineStatusSlice';
 
-export let projectSelected = undefined;
-export let branchSelected = undefined;
-
-export class StatusWatcher extends React.Component {
-    constructor(props) {
-        super(props);
-        this.initState = {
-            projectSelected: undefined,
-            branchSelected: undefined,
-            projectsFound: [],
-            branches: [],
-            pipeline: undefined,
-            pipelineJobs: []
-        }
-        this.state = {
-            ...this.initState
-        }
-        setInterval(()=>{
-            this.updateProjectBranches()
-            this.updatePipeline()
-            this.updatePipelineJobs()
-        }, 5000)
+let g_projectSelected = null
+let g_branchSelected = null
+let g_pipeline = null
+let runBackgroundTimer = false
+export function StatusWatcher() {
+    const [projectSelected, setProjectSelected] = useState(null)
+    const [branchSelected, setBranchSelected] = useState(null)
+    const [projectsFound, setProjectsFound] = useState([])
+    const [branches, setBranches] = useState([])
+    const [pipeline, setPipeline] = useState(null)
+    const [pipelineJobs, setPipelineJobs] = useState([])
+    const dispatch = useDispatch()
+    g_projectSelected = projectSelected
+    g_branchSelected = branchSelected
+    g_pipeline = pipeline
+    if (!runBackgroundTimer){
+        runBackgroundTimer = true
+        BackgroundTimer.runBackgroundTimer(() => { 
+            if (g_projectSelected && g_branchSelected){
+                updatePipeline(g_projectSelected, g_branchSelected, setPipeline, setPipelineJobs)                
+                if (g_pipeline){
+                    dispatch(updatePipelineStatus(g_pipeline.status))
+                }
+            }
+        }, 
+        3000);
     }
-    
-    render() {
-        return (
-            <View style={styles.mainContainer}>
-                { this.renderProjectSearchBar() }
-                <View style={styles.branchListAndPipelineContainer}>
-                    { this.renderBranchList() }
-                    { this.renderPipeline() }
-                    <LedDeviceManager/>
-                </View>
+    return (
+        <View style={styles.mainContainer}>
+            { renderProjectSearchBar(projectsFound, setProjectsFound, projectSelected, setProjectSelected, setBranches, setPipelineJobs, setBranchSelected) }
+            <View style={styles.branchListAndPipelineContainer}>
+                { renderBranchList(branches, branchSelected, setBranchSelected, projectSelected, pipeline, setPipeline, setPipelineJobs) }
+                { renderPipelineJobs(pipelineJobs) }
+                <LedDeviceManager/>
             </View>
-            )
-        }
-    
-    updateProjectFound(searchString){
-        getGitlabProjects(searchString)
-        .then((projects) => this.setState({ projectsFound: projects }))
+        </View>
+        )
     }
-    updateProjectBranches(){
-        if (this.state.projectSelected === this.initState.projectSelected){
+    
+    function updateProjectBranches(projectSelected, setBranches){
+        if (!projectSelected){
             return
         }
-        getProjectBranches(this.state.projectSelected.id)
-        .then((branches) => this.setState({ branches: branches}))
+        getProjectBranches(projectSelected.id)
+        .then((branches) => setBranches(branches))
         .catch((error) => {
             console.warn("[updateProjectBranches]", error)
-            this.setState({
-                branches: this.initState.branches
-            })
         })
     }
-    updatePipeline(){
-        if (this.state.projectSelected === this.initState.projectSelected || this.state.branchSelected === this.initState.branchSelected){
+    function updatePipeline(projectSelected, branchSelected, setPipeline, setPipelineJobs){
+        if (!projectSelected || !branchSelected){
             return
         }
-        getPipelineFromCommit(this.state.projectSelected.id, this.state.branchSelected.commit.id)
-        .then((pipelines) => this.setState({ pipeline: pipelines[0]}, () => this.updatePipelineJobs()))
+        getPipelineFromCommit(projectSelected.id, branchSelected.commit.id)
+        .then((pipelines) => {
+            setPipeline(pipelines[0])
+            updatePipelineJobs(setPipelineJobs, projectSelected, pipelines[0])
+        })
         .catch((error) => {
             console.warn("[updatePipeline]", error)
-            this.setState({ 
-                pipeline: this.initState.pipeline
-            })
         })
     }
-    updatePipelineJobs(){
-        if (this.state.projectSelected === this.initState.projectSelected || this.state.pipeline === this.initState.pipeline){
+    function updatePipelineJobs(setPipelineJobs, projectSelected, pipeline){
+        if (!projectSelected || !pipeline){
             return
         }
-        getPipelineJobs(this.state.projectSelected.id, this.state.pipeline.id)
-        .then((jobs) => this.setState( {pipelineJobs: jobs}))
+        getPipelineJobs(projectSelected.id, pipeline.id)
+        .then((jobs) => setPipelineJobs(jobs))
         .catch((error) => {
             console.warn("[updatePipelineJobs]", error)
-            this.setState({ 
-                pipelineJobs: this.initState.pipelineJobs
-            })
         })
     }
     
-    renderProjectSearchBar(){
+    function renderProjectSearchBar(projectsFound, setProjectsFound, projectSelected, setProjectSelected, setBranches, setPipelineJobs, setBranchSelected){
         return (
             <View style={styles.autocompleteContainer}>
                 <AutocompleteInput
                     style={styles.searchBar}
                     placeholder="Search Gitlab Project..."
-                    data={this.state.projectsFound}
-                    value={ (this.state.projectSelected) ? this.state.projectSelected.name : null}
-                    onChangeText={(text) => {
-                        this.setState({ 
-                            ...this.initState
-                        });
-                        this.updateProjectFound(text)
+                    data={projectsFound}
+                    value={ (projectSelected) ? projectSelected.name : null}
+                    onChangeText={(searchString) => {
+                        setPipelineJobs([])
+                        setBranchSelected(null)
+                        setProjectSelected(null)
+                        setProjectsFound([])
+                        setBranches([])
+                        getGitlabProjects(searchString).then((projects) => setProjectsFound(projects))
                         }
                     }
                     flatListProps={{
                         keyExtractor: (_, idx) => idx,
                         renderItem: ({ item }) =>
-                            <TouchableOpacity style={styles.suggestionListItem} onPress={() => this.setProjectSelected(item)}>
+                            <TouchableOpacity style={styles.suggestionListItem} onPress={() => {
+                                setProjectSelected(item)
+                                setProjectsFound([])
+                                updateProjectBranches(item, setBranches)
+                            }}>
                                 <Text style={styles.text}>{item.name}</Text>
                             </TouchableOpacity>
                     }}
@@ -113,59 +113,55 @@ export class StatusWatcher extends React.Component {
             </View>
         )
     }
-    setBranchSelected(branch){
-        branchSelected = branch
-        this.setState( { branchSelected: branch }, () => this.updatePipeline())
-    }
-    setProjectSelected(project){
-        projectSelected = project
-        this.setState( { projectSelected: project, projectsFound: [] }, () => this.updateProjectBranches())
-    }
-    renderBranchList(){
+
+    function renderBranchList(branches, branchSelected, setBranchSelected, projectSelected, pipeline, setPipeline, setPipelineJobs){
         return (
             <View style={styles.branchListContainer}>
                 <FlatList
-                data={this.state.branches}
-                renderItem= {({ item }) => this.renderBranchItem(item) }
+                data={branches}
+                renderItem= {({ item }) => renderBranchItem(item, branchSelected, setBranchSelected, projectSelected, pipeline, setPipeline, setPipelineJobs) }
                 keyExtractor={item => item.name}
             /> 
           </View>
         )
     }
-    renderBranchItem(branch){
-        const renderStatusPellet = this.state.pipeline && this.state.branchSelected
+    function renderBranchItem(branchItem, branchSelected, setBranchSelected, projectSelected, pipeline, setPipeline, setPipelineJobs){
+        const _renderStatusPellet = pipeline && branchSelected
         return (
-            <TouchableOpacity style={styles.listItemContainer} onPress={() => this.setBranchSelected( branch )}>
-                <Text style={{fontSize: 20, flex:0.9}} numberOfLines={1}>{branch.name}</Text>
-                { renderStatusPellet && this.state.branchSelected.name === branch.name ?  this.renderStatusPellet(this.state.pipeline.status) : null }
+            <TouchableOpacity style={styles.listItemContainer} onPress={() =>{
+                setBranchSelected( branchItem )
+                updatePipeline(projectSelected, branchItem, setPipeline, setPipelineJobs)
+            }}>
+                <Text style={{fontSize: 20, flex:0.9}} numberOfLines={1}>{branchItem.name}</Text>
+                { _renderStatusPellet && branchSelected.name === branchItem.name ?  renderStatusPellet(pipeline.status) : null }
             </TouchableOpacity>
         )
     }
-    renderStatusPellet(status){
+    function renderStatusPellet(status){
         return <View style={[styles.pellet, {backgroundColor: colors[status]}]}></View>
     }
 
-    renderPipeline(){
+    function renderPipelineJobs(pipelineJobs){
         return(
             <View style={styles.pipelineContainer}>
                 <FlatList
-                data={this.state.pipelineJobs}
-                renderItem= {({ item }) => this.renderJobItem(item) }
+                data={pipelineJobs}
+                renderItem= {({ item }) => renderJobItem(item) }
                 keyExtractor={item => item.name}
                 /> 
             </View>
         )
     }
-    renderJobItem(job){
+    function renderJobItem(job){
         return (
             <View style={styles.listItemContainer} >
                 <Text style={{fontSize: 20, flex:0.9}} numberOfLines={1}>{job.name}</Text>
-                { this.renderStatusPellet(job.status) }
+                { renderStatusPellet(job.status) }
             </View>
         )
     }
     
-}
+
 
 const styles = StyleSheet.create({
     mainContainer: {
